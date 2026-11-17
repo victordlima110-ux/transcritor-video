@@ -6,8 +6,14 @@ App Next.js que transcreve um vídeo completo:
 2. Divide o áudio em blocos de **no máximo 10 minutos**.
 3. Transcreve cada bloco, **um por vez**, usando Whisper rodando
    localmente (sem chamada de API, sem custo por uso).
-4. Mostra o texto de cada bloco na tela conforme fica pronto (não precisa
-   esperar o vídeo inteiro terminar para começar a ler).
+4. Dentro de cada bloco, detecta automaticamente trechos (~30s) com sinais
+   de transcrição ruim — silêncio mal interpretado, repetição/"alucinação"
+   típica quando o áudio tem ruído ou fala pouco clara — e re-transcreve
+   **só esses trechos** com um modelo mais robusto, sem deixar o processo
+   inteiro mais lento.
+5. Mostra o texto de cada bloco na tela conforme fica pronto (não precisa
+   esperar o vídeo inteiro terminar para começar a ler), sinalizando quando
+   algum trecho recebeu esse reforço extra.
 
 ## Como rodar
 
@@ -22,14 +28,40 @@ Na primeira transcrição, o modelo Whisper (uns ~150 MB) é baixado
 automaticamente do Hugging Face e fica em cache local — as próximas
 chamadas já usam o modelo baixado, sem precisar baixar de novo.
 
-## Como ajustar
+## Velocidade vs. qualidade
 
-- **Modelo usado**: em `lib/whisper.ts`, a constante `MODEL_ID`
-  (`Xenova/whisper-base` por padrão). Para mais velocidade, troque para
-  `Xenova/whisper-tiny`; para mais qualidade (porém mais lento),
-  `Xenova/whisper-small`.
-- **Tamanho do bloco**: em `app/api/transcribe/route.ts`, a constante
-  `CHUNK_SECONDS` (600 = 10 minutos).
+Por padrão, todo o áudio é transcrito com `Xenova/whisper-base`, e qualquer
+trecho suspeito é reforçado com `Xenova/whisper-small` (mais lento, porém
+mais preciso) — só nesse trecho, não no bloco inteiro.
+
+Isso é configurável por variável de ambiente, sem mexer no código. No
+Windows (cmd), antes do `npm run dev`:
+
+```bat
+set WHISPER_MODEL=Xenova/whisper-tiny
+set WHISPER_RETRY_MODEL=Xenova/whisper-base
+npm run dev
+```
+
+- `WHISPER_MODEL` — modelo usado em todo o áudio. Do mais rápido/menos
+  preciso para o mais lento/mais preciso: `whisper-tiny` → `whisper-base`
+  (padrão) → `whisper-small` → `whisper-medium`.
+- `WHISPER_RETRY_MODEL` — modelo usado só nos trechos problemáticos
+  (padrão: `whisper-small`).
+
+**Combinação recomendada se o objetivo principal é velocidade**: a de
+cima (`tiny` + reforço com `base`) — reduz bastante o tempo total e ainda
+assim reforça automaticamente os trechos difíceis com o modelo que você já
+testou e aprovou.
+
+Importante: nenhuma dessas combinações garante 100% de acerto — áudio
+muito ruidoso ou fala muito confusa sempre vai ter limite, de qualquer
+transcritor automático. O reforço automático reduz os erros óbvios
+(trechos vazios, repetição/alucinação), não garante perfeição.
+
+Outro ajuste possível: em `app/api/transcribe/route.ts`, a constante
+`CHUNK_SECONDS` (600 = 10 minutos) controla o tamanho de cada bloco
+externo.
 
 ## Publicando na Vercel — ponto de atenção importante
 

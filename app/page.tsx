@@ -8,6 +8,7 @@ type Bloco = {
   startSec: number;
   endSec: number;
   text: string;
+  reinforcedSeconds: number;
 };
 
 function formatMin(totalSec: number) {
@@ -139,9 +140,16 @@ export default function Home() {
                   key={b.index}
                   className="border border-slate-800 rounded-lg p-4 bg-slate-900/60"
                 >
-                  <div className="text-xs text-slate-500 mb-1">
-                    Bloco {b.index}/{b.totalChunks} · {formatMin(b.startSec)}–
-                    {formatMin(b.endSec)}
+                  <div className="text-xs text-slate-500 mb-1 flex items-center gap-2 flex-wrap">
+                    <span>
+                      Bloco {b.index}/{b.totalChunks} · {formatMin(b.startSec)}–
+                      {formatMin(b.endSec)}
+                    </span>
+                    {b.reinforcedSeconds > 0 && (
+                      <span className="text-amber-400/80 bg-amber-400/10 rounded px-1.5 py-0.5">
+                        ~{Math.round(b.reinforcedSeconds)}s reforçados com IA mais robusta
+                      </span>
+                    )}
                   </div>
                   <p className="whitespace-pre-wrap text-sm leading-relaxed">
                     {b.text}

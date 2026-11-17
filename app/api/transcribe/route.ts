@@ -34,6 +34,7 @@ type ProgressEvent =
       startSec: number;
       endSec: number;
       text: string;
+      reinforcedSeconds: number;
     }
   | { type: "done"; fullText: string }
   | { type: "error"; message: string };
@@ -89,7 +90,7 @@ export async function POST(req: NextRequest) {
           await cutMp3Segment(mp3Path, segmentPath, startSec, durationSec);
 
           const floatAudio = await toWhisperFloat32(segmentPath);
-          const text = await transcribeChunk(floatAudio);
+          const { text, reinforcedSeconds } = await transcribeChunk(floatAudio);
 
           fullTextParts.push(text);
           send({
@@ -99,6 +100,7 @@ export async function POST(req: NextRequest) {
             startSec,
             endSec,
             text,
+            reinforcedSeconds,
           });
 
           await rm(segmentPath, { force: true });
